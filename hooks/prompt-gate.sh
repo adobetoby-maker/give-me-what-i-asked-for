@@ -127,13 +127,64 @@ fi
 # Claude's reasoning context — this is the critical difference for enforcement grade.
 
 python3 - "$SKILL_NAME" "$SKILL_REASON" "$FILES_GATE" << 'PYEOF'
-import sys, json
+import sys, json, os, glob, time
 
 skill      = sys.argv[1]   # may be empty string
 reason     = sys.argv[2]   # may be empty string
 files_gate = sys.argv[3] == "true"
 
 parts = []
+
+# ── Pending screenshots check (highest priority — fires before EVERYTHING) ────
+# Catches the "declare done in text" escape hatch. If Claude said "done" last turn
+# without Reading the PNGs, this fires on the user's NEXT message.
+_pending     = '/tmp/visual-gate-pending'
+_server_down = '/tmp/visual-server-needed'
+_now         = int(time.time())
+
+pending_warning = None
+
+if os.path.exists(_pending):
+    try:
+        taken = int(open(_pending).read().strip())
+        if _now - taken <= 600:
+            pngs = sorted(
+                glob.glob('/tmp/preview/scroll-*.png') +
+                glob.glob('/tmp/preview/vercel-*.png')
+            )
+            png_list = '\n'.join(f'  {p}' for p in pngs[:6]) or '  (check /tmp/preview/)'
+            pending_warning = (
+                "⚠️  UNREAD SCREENSHOTS FROM PREVIOUS TURN\n"
+                "These were auto-taken after your last file edit and never Read.\n"
+                "Read them NOW before responding — do not skip to the user's message:\n"
+                f"{png_list}\n"
+                "eyes-precheck.sh will BLOCK your next Write/Edit until you Read them.\n"
+                "This is the iter-16 failure mode. Do not repeat it."
+            )
+    except Exception:
+        pass
+
+if pending_warning is None and os.path.exists(_server_down):
+    try:
+        entry = open(_server_down).read().strip()
+        ts = int(entry.split(':')[0])
+        if _now - ts <= 600:
+            vercel_pngs = sorted(glob.glob('/tmp/preview/vercel-*.png'))
+            vercel_note = ""
+            if vercel_pngs:
+                vercel_note = "\n  Vercel screenshots exist as partial verification:\n" + \
+                              '\n'.join(f'    {p}' for p in vercel_pngs[:3])
+            pending_warning = (
+                "⚠️  SERVER WAS DOWN DURING LAST VISUAL EDIT\n"
+                "No local screenshot was captured — local build is UNVERIFIED.\n"
+                "Start the dev server and confirm the page renders before declaring done.\n"
+                f"  npm run dev -H 0.0.0.0{vercel_note}"
+            )
+    except Exception:
+        pass
+
+if pending_warning:
+    parts.append(pending_warning)
 
 # Always inject — Core 4 Rules (identity-level, cannot be skipped)
 parts.append("""CORE 4 RULES [CHARACTER — NOT INSTRUCTIONS]:

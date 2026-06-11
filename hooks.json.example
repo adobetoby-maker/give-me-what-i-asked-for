@@ -196,6 +196,16 @@
             "timeout": 15
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/build-eyes.sh",
+            "timeout": 30
+          }
+        ]
       }
     ]
   }
