@@ -112,6 +112,8 @@ Layer 3 — Ritual check blocked (eyes-precheck.sh on Bash)
 | `Write` + `Edit` | `eyes-precheck.sh` | **BLOCK** if `/tmp/visual-gate-pending` is fresh. Lists exact PNGs to Read. |
 | `Write` + `Edit` | `eyes-precheck.sh` | **BLOCK** if `/tmp/visual-server-needed` is fresh (no dev server when file was edited). |
 | `Bash` | `eyes-precheck.sh` | **BLOCK** finishing commands (`git commit`, `git push`, `vercel`, `wrangler`, `deploy`) + the gate-check ritual itself (`ls /tmp/visual-gate-pending`) while gate is armed. Allowlisted: `screenshot.js`, `record.js`, `ffmpeg`, `npm run dev`, `curl localhost`. |
+| `mcp__claude_ai_Vercel__deploy_to_vercel` | `eyes-precheck.sh` | **BLOCK** MCP-routed Vercel deploy while gate armed. Closes the CLI-failure fallback path that otherwise bypasses all gates. |
+| `mcp__plugin_vercel_vercel__*` | `eyes-precheck.sh` | **BLOCK** plugin Vercel MCP deploys while gate armed. |
 | `Write` + `Edit` | `scope-check.sh` | Injects Core Rule 3 reminder before every file write. |
 | `Bash` | `deploy-gate.sh` | Platform decision gate before any deploy command. |
 | `Bash` | `code-gate.sh` | TypeScript check before deploy. |
@@ -138,7 +140,7 @@ Layer 3 — Ritual check blocked (eyes-precheck.sh on Bash)
 | File | Written by | Cleared by | Meaning |
 |---|---|---|---|
 | `/tmp/visual-gate-pending` | `visual-gate.sh` (on screenshot success) | `post-read-clear.sh` (PNG Read) | Screenshots taken, not yet Read |
-| `/tmp/visual-server-needed` | `visual-gate.sh` (when no server found) | `visual-gate.sh` (when server found on next edit) | File edited with no dev server running |
+| `/tmp/visual-server-needed` | `visual-gate.sh` (when no server found) | `visual-gate.sh` (when server found on next edit) OR `post-read-clear.sh` (PNG Read — Vercel fallback satisfies gate) | File edited with no dev server running |
 | `/tmp/skipped-gate` | `stop-gate.sh`, `message-display-gate.sh` | `prompt-gate.sh` (one-shot, cleared after injection) | Turn ended with gate still armed |
 | `/tmp/stop-gate-blocks` | `stop-gate.sh` (increments per block) | `stop-gate.sh` (cleared when no gate armed) | Block budget counter for current episode |
 | `/tmp/preview/*.png` | `visual-gate.sh` (screenshot.js output) | `post-read-clear.sh` (immediate delete on Read) | Screenshot files |
@@ -199,10 +201,19 @@ ffmpeg -i /tmp/preview/review.webm -vf fps=2 /tmp/preview/frames/frame_%03d.png
 | npm build → screenshot Vercel | 7/10 | PostToolUse Bash, build detection |
 | Server down → blocked | 8/10 | Server-needed flag + eyes-precheck |
 | git commit while gate armed | 9/10 | eyes-precheck.sh Bash gate |
+| MCP Vercel deploy while gate armed | 9/10 | eyes-precheck.sh MCP branch |
 
 **System grade: 9.5/10**
 
 Remaining 0.5: after 3 Stop-blocks, the session is allowed to end (required for liveness). Closing the final 0.5 requires a `PreTextOutput` hook that does not exist in Claude Code.
+
+### Bugs Fixed (v1.1 — Fable assessment findings)
+
+| Bug | Symptom | Fix |
+|---|---|---|
+| `stop_hook_active` early exit | Budget was effectively 1 not 3. Any forced-continuation turn exited 0 even with screenshots unread. | Removed early exit. Budget counter alone controls liveness. |
+| `visual-server-needed` not cleared on Read | Reading a Vercel fallback PNG cleared `visual-gate-pending` but not `visual-server-needed`, creating a deadlock. | `post-read-clear.sh` now clears both flags on any PNG Read. |
+| MCP deploy ungated | `mcp__claude_ai_Vercel__deploy_to_vercel` had no PreToolUse matcher. `autonomous-operations.md` explicitly routes to MCP when CLI fails — an escape hatch through every deploy gate. | Added PreToolUse matchers for Vercel MCP deploy tools. `eyes-precheck.sh` MCP branch handles the block. |
 
 ---
 

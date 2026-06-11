@@ -80,9 +80,12 @@ fi
 # blocking is in effect or has been exhausted.
 echo "$NOW:$REASON" > /tmp/skipped-gate
 
-# If we're already in a forced continuation, or we've spent the block budget,
-# stop blocking — let the turn end and rely on prompt-gate's next-turn injection.
-if [ "$STOP_ACTIVE" = "true" ] || (( BLOCKS >= STOP_BLOCK_MAX )); then
+# Budget exhausted — let the turn end and rely on prompt-gate's next-turn injection.
+# Note: stop_hook_active is NOT used as an early exit. The budget counter already
+# caps loops at STOP_BLOCK_MAX. Using stop_hook_active as an additional early exit
+# reduced the effective budget to 1 (any forced-continuation turn exited 0 even if
+# screenshots were never Read). Budget alone is the correct liveness safeguard.
+if (( BLOCKS >= STOP_BLOCK_MAX )); then
   exit 0
 fi
 

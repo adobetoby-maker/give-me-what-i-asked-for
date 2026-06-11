@@ -19,8 +19,11 @@ if echo "$FILE_PATH" | grep -qE '^/tmp/preview/.*\.png$'; then
   # Delete the PNG just Read
   rm -f "$FILE_PATH"
 
-  # Clear the pending flag
+  # Clear both gate flags — reading Vercel fallback screenshots satisfies the
+  # server-needed gate too. Without this, visual-server-needed stays armed after
+  # the Vercel PNG is Read, creating a deadlock (gate never clears).
   rm -f /tmp/visual-gate-pending
+  rm -f /tmp/visual-server-needed
 
   # Reset the Stop-hook block budget — the gate was satisfied legitimately,
   # so the next armed-gate episode gets a fresh set of blocks.

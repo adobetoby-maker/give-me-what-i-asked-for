@@ -77,6 +77,26 @@
         ]
       },
       {
+        "matcher": "mcp__claude_ai_Vercel__deploy_to_vercel",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/eyes-precheck.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_vercel_vercel__*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/eyes-precheck.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {

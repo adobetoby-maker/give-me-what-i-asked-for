@@ -113,6 +113,38 @@ PYEOF
   exit 0
 fi
 
+# ── MCP DEPLOY branch ─────────────────────────────────────────────────────────
+# MCP deploy tools (mcp__claude_ai_Vercel__deploy_to_vercel, etc.) are matched
+# by hooks.json matchers. They fall through to here (not Bash, not Write/Edit).
+# If a gate is armed we block the same way as a finishing Bash command.
+if echo "$TOOL_NAME" | grep -qiE '(deploy_to_vercel|mcp.*deploy|mcp.*vercel|mcp.*wrangler|mcp.*cloudflare.*deploy)'; then
+  if pending_armed || server_armed; then
+
+    python3 - "$TOOL_NAME" << 'PYEOF'
+import sys, json, glob
+
+tool = sys.argv[1]
+pngs = sorted(
+    glob.glob('/tmp/preview/scroll-*.png') +
+    glob.glob('/tmp/preview/vercel-*.png')
+)
+png_list = '\n'.join(f'  {p}' for p in pngs[:6]) or '  (re-run: node ~/screenshot.js <port> 0,540,1080)'
+
+context = (
+    "DEPLOY BLOCKED — visual gate still ARMED.\n\n"
+    f"You are about to call: {tool}\n\n"
+    "You cannot deploy when screenshots have not been Read. Read them now:\n"
+    f"{png_list}\n\n"
+    "Describe what you see. Any PNG Read clears the gate. Then redeploy."
+)
+print(json.dumps({"additionalContext": context}))
+PYEOF
+
+    exit 2
+  fi
+  exit 0
+fi
+
 # ── WRITE / EDIT branch (original behavior) ────────────────────────────────────
 
 # ── Gate 1 — screenshots pending ──────────────────────────────────────────────
