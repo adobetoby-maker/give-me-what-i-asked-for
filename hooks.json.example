@@ -43,6 +43,17 @@
         ]
       }
     ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/stop-gate.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "MessageDisplay": [
       {
         "hooks": [
@@ -107,6 +118,16 @@
       },
       {
         "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/eyes-precheck.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",

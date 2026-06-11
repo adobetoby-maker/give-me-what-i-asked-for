@@ -22,6 +22,11 @@ if echo "$FILE_PATH" | grep -qE '^/tmp/preview/.*\.png$'; then
   # Clear the pending flag
   rm -f /tmp/visual-gate-pending
 
+  # Reset the Stop-hook block budget — the gate was satisfied legitimately,
+  # so the next armed-gate episode gets a fresh set of blocks.
+  rm -f /tmp/stop-gate-blocks
+  rm -f /tmp/skipped-gate
+
   # Purge old files (>30 min) — keep /tmp/preview/ lean
   find /tmp/preview -maxdepth 1 -name "*.png"  -mmin +30 -delete 2>/dev/null
   find /tmp/preview -maxdepth 1 -name "*.webm" -mmin +30 -delete 2>/dev/null

@@ -269,15 +269,46 @@ The gap:
    The video recorder still overwrites `review.webm` on every run. Running desktop then mobile
    means the desktop video is lost. This is a known gap.
 
-4. **Gates fire at write-time, not at "done"-declaration-time.**
-   A model that writes 6 files and then says "done" without reading any of the injected PNGs
-   has bypassed the gate. The gate fired, the screenshots exist, but the reading step is still
-   compliance-dependent.
+4. **~~Gates fire at write-time, not at "done"-declaration-time.~~ (CLOSED — see below)**
+   This was the "done-in-text, no tool call" bypass: write 6 files, say "done" in plain
+   text with no trailing tool call, and the PreToolUse Write/Edit block never arms. It is
+   now structurally closed by the Stop-hook block described below.
 
-**The path to 10/10:**
-A PreToolUse hook on message generation (if such a hook existed) that checks whether
-`/tmp/preview/scroll-*.png` has been Read since the last visual-gate fire. Until that
-hook exists in Claude Code, the final reading step is the last remaining compliance dependency.
+**The done-in-text close (the path that was missing):**
+
+There is no PreTextOutput hook in Claude Code — text cannot be intercepted before it's
+written. But the **Stop hook fires at the exact moment a turn tries to end**, and a Stop
+hook that returns `{"decision":"block","reason":...}` *refuses to let the turn end* and
+sends the model back into the loop. That is the forcing function for the done-in-text case.
+
+The architecture now closes the gap at three tool-call-layer points:
+
+| Hook | Event | What it blocks |
+|---|---|---|
+| `eyes-precheck.sh` | PreToolUse Write/Edit | next file write while screenshots unread |
+| `eyes-precheck.sh` | PreToolUse **Bash** | `git commit` / deploy / push **and the gate-check ritual itself** (`ls /tmp/visual-gate-pending`) while unread — the honesty check is no longer an escape hatch |
+| `stop-gate.sh` | **Stop / SubagentStop** | the **turn from ending** while a gate is armed — `decision:block` returns the model to the loop before the user ever sees the premature "done" |
+
+The Bash gate is the subtle one. The HONESTY injection tells the model to run
+`ls /tmp/visual-gate-pending` before declaring done. Previously that was an observation it
+could run and then ignore. Now `eyes-precheck.sh` intercepts that exact command and turns
+the ritual into a hard stop — the only way through is Reading the PNGs (which clears the gate
+via `post-read-clear.sh`). Capture/read/serve commands (`screenshot.js`, `record.js`,
+`npm run dev`, `ffmpeg`) are explicitly allowlisted so the model can still do the work that
+clears the gate.
+
+The Stop block is bounded: it blocks at most 3 times per armed-gate episode (tracked in
+`/tmp/stop-gate-blocks`, honoring `stop_hook_active`), then falls back to the legacy
+next-turn `prompt-gate.sh` injection — so a wedged capture (PNGs purged, server permanently
+down) can never trap the session in an infinite Stop→reason→Stop loop.
+
+**Honest grade after this change: ~9.5/10.** The residual 0.5 is the bounded fall-back: after
+3 Stop-blocks the turn is allowed to end (to guarantee liveness), at which point enforcement
+degrades to the next-turn injection. A model that deliberately exhausts the block budget and
+then ignores the next-turn nuclear injection could still get a "done" out — but it would be
+branded with GATE VIOLATION by `message-display-gate.sh` and flagged on the following turn.
+Closing that last 0.5 requires either an unbounded block (unacceptable — risks a hung session)
+or a native PreTextOutput hook that does not exist in Claude Code.
 
 ---
 

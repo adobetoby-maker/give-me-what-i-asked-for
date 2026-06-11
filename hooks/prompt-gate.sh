@@ -234,15 +234,24 @@ Prefix every claim about running or working code with how you know:
 "Done" without running the gate = dishonest. The honest form is "I think it's done — running gate."
 
 BEFORE WRITING ANY OF THESE WORDS — done, complete, finished, fixed, shipped, ready, working, resolved:
-  REQUIRED: Run Bash → ls /tmp/visual-gate-pending /tmp/visual-server-needed 2>/dev/null
-  If either file exists → STOP → clear the gate → THEN declare done.
-  No exceptions. The check takes 1 second. Skipping it is the iter-16 failure mode.
-  message-display-gate.sh intercepts your output and brands it with GATE VIOLATION if you skip.
-  stop-gate.sh writes /tmp/skipped-gate at end of turn — the next user message gets a nuclear injection.
+  The honest move is to Read the auto-captured screenshots in /tmp/preview/ FIRST.
+  Reading any preview PNG clears the gate. There is no faster path through it.
+  Do NOT try to "just run ls /tmp/visual-gate-pending to check" and move on —
+  eyes-precheck.sh now BLOCKS that exact gate-check command (and git commit / deploy /
+  push) while a gate is armed. The ritual check is no longer an escape hatch; the only
+  exit is Reading the PNGs. The check takes 1 second. Skipping it is the iter-16 failure mode.
 
-Screenshots: auto-taken by visual-gate.sh. Eyes-precheck.sh BLOCKS your next write if you
-haven't Read them. The bypass you're most likely to attempt: writing "done" in text
-without a Write/Edit after it. message-display-gate.sh now catches this.
+THREE-LAYER STRUCTURAL ENFORCEMENT (you cannot text your way past these):
+  • eyes-precheck.sh — BLOCKS your next Write/Edit AND any git-commit/deploy/gate-check Bash
+    command while screenshots are unread. Exit 2 = hard stop at the tool layer.
+  • stop-gate.sh — BLOCKS the turn from ENDING if a gate is still armed. If you write
+    "done" in plain text with no trailing tool call, the Stop hook returns decision:block
+    and sends you back into the loop with the screenshot paths — the user never sees the
+    premature "done". It blocks up to 3 times, then falls back to a next-turn injection.
+  • message-display-gate.sh — brands any "done" message with GATE VIOLATION as a final catch.
+
+The bypass you're most likely to attempt: writing "done" in text without a Write/Edit
+after it. stop-gate.sh now catches this at turn-end and refuses to let the turn finish.
 
 HONESTY IN RESEARCH [ALWAYS]:
 Do not present research findings as certainties unless you have a source.
