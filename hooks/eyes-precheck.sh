@@ -61,8 +61,14 @@ server_armed() {
 if [ "$TOOL_NAME" = "Bash" ]; then
 
   # Commands the model legitimately needs WHILE a gate is armed — never block these.
-  # (reading/capturing/serving/clearing paths out of the gate)
-  if echo "$BASH_CMD" | grep -qiE '(screenshot\.js|record\.js|ffmpeg|npm run dev|next dev|vite|lsof|curl .*localhost|\.devport|\.vercelurl)'; then
+  # Patterns are anchored to command/pipeline-stage starts so that a finishing command
+  # whose -m message happens to mention "npm run dev" isn't accidentally allowlisted.
+  # Examples blocked correctly: git commit -m "npm run dev fix", echo "ffmpeg rocks"
+  # Examples allowed correctly:  cd /x && npm run dev -H 0.0.0.0, ffmpeg -i foo.webm
+  if echo "$BASH_CMD" | grep -qiE '(^|&&\s*|\|\|?\s*)(node\s+\S*(screenshot|record)\.js|ffmpeg(\s|$)|npm\s+run\s+dev(\s|$)|npx\s+.*next\s+dev|next\s+dev(\s|$)|vite(\s|$)|lsof(\s|$)|curl\s+\S*(localhost|127\.0\.0\.1))'; then
+    exit 0
+  fi
+  if echo "$BASH_CMD" | grep -qE '\.(devport|vercelurl)'; then
     exit 0
   fi
 
@@ -102,7 +108,7 @@ context = (
     "claim from what the pixels actually show. This is the iter-16 failure mode\n"
     "if you skip it."
 )
-print(json.dumps({"additionalContext": context}))
+print(context)
 PYEOF
 
       exit 2
@@ -137,7 +143,7 @@ context = (
     f"{png_list}\n\n"
     "Describe what you see. Any PNG Read clears the gate. Then redeploy."
 )
-print(json.dumps({"additionalContext": context}))
+print(context)
 PYEOF
 
     exit 2
@@ -180,7 +186,7 @@ context = (
     "│  Skipping this = iter-16 failure mode.                      │\n"
     "└─────────────────────────────────────────────────────────────┘"
 )
-print(json.dumps({"additionalContext": context}))
+print(context)
 PYEOF
 
     exit 2
@@ -228,7 +234,7 @@ context = (
     "│  Do NOT declare done without screenshot verification.        │\n"
     "└─────────────────────────────────────────────────────────────┘"
 )
-print(json.dumps({"additionalContext": context}))
+print(context)
 PYEOF
 
     exit 2
