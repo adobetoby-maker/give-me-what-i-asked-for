@@ -278,6 +278,38 @@ if files_gate:
   3. mem-search prior work
   4. ONLY THEN: external research""")
 
+# ── Skill skip check — previous turn required a skill but Skill tool not invoked ──
+skill_flag = '/tmp/skill-required-this-turn'
+if os.path.exists(skill_flag):
+    try:
+        entry = open(skill_flag).read().strip()
+        prev_ts   = int(entry.split(':')[0])
+        prev_skill = entry.split(':')[1] if ':' in entry else ''
+        # Only surface if from the previous turn (within 10 min) and different from current
+        if _now - prev_ts <= 600 and prev_skill and prev_skill != skill:
+            parts.insert(1, (
+                f"╔══ SKILL SKIP DETECTED ════════════════════════════════════╗\n"
+                f"║  Previous turn required: {prev_skill:<36}║\n"
+                f"║  The Skill tool was NOT invoked before responding.        ║\n"
+                f"║                                                           ║\n"
+                f"║  REQUIRED FIRST ACTION for this response:                 ║\n"
+                f"║    Skill({{ \"skill\": \"{prev_skill}\" }})                           ║\n"
+                f"║                                                           ║\n"
+                f"║  Skipping skills encodes worse patterns into future work. ║\n"
+                f"╚═══════════════════════════════════════════════════════════╝"
+            ))
+        os.remove(skill_flag)
+    except Exception:
+        pass
+
+# Write skill-required flag for this turn (cleared by PostToolUse:Skill hook)
+if skill:
+    try:
+        with open(skill_flag, 'w') as f:
+            f.write(f"{_now}:{skill}")
+    except Exception:
+        pass
+
 context = "\n\n".join(parts)
 print(json.dumps({"additionalContext": context}))
 PYEOF
