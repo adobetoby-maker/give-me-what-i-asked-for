@@ -135,13 +135,46 @@ files_gate = sys.argv[3] == "true"
 
 parts = []
 
-# ── Pending screenshots check (highest priority — fires before EVERYTHING) ────
-# Catches the "declare done in text" escape hatch. If Claude said "done" last turn
-# without Reading the PNGs, this fires on the user's NEXT message.
-_pending     = '/tmp/visual-gate-pending'
-_server_down = '/tmp/visual-server-needed'
-_now         = int(time.time())
+_pending      = '/tmp/visual-gate-pending'
+_server_down  = '/tmp/visual-server-needed'
+_skipped_gate = '/tmp/skipped-gate'
+_now          = int(time.time())
 
+# ── SKIPPED-GATE CHECK — absolute highest priority ────────────────────────────
+# Fires when: Stop hook OR MessageDisplay hook detected a "done" was declared
+# while a gate was armed. This is the NUCLEAR injection — overrides everything else.
+if os.path.exists(_skipped_gate):
+    try:
+        entry = open(_skipped_gate).read().strip()
+        ts    = int(entry.split(':')[0])
+        flags = entry.split(':')[1] if ':' in entry else ''
+        if _now - ts <= 1800:   # 30 min window — longer than pending flag
+            pngs = sorted(
+                glob.glob('/tmp/preview/scroll-*.png') +
+                glob.glob('/tmp/preview/vercel-*.png')
+            )
+            png_list = '\n'.join(f'  {p}' for p in pngs[:6]) or '  (already purged — take new screenshot)'
+            parts.append(
+                "╔══════════════════════════════════════════════════════════════╗\n"
+                "║  GATE VIOLATION — PREVIOUS TURN DECLARED DONE PREMATURELY   ║\n"
+                "║                                                              ║\n"
+                "║  A visual gate was ARMED when the last response ended.       ║\n"
+                f"║  Flags bypassed: {flags:<45} ║\n"
+                "║                                                              ║\n"
+                "║  BEFORE responding to the user's new message:               ║\n"
+                "║  1. Read any remaining screenshots below                    ║\n"
+                "║  2. Describe what you see                                   ║\n"
+                "║  3. Confirm or correct the previous 'done' claim            ║\n"
+                "║  4. THEN respond to the user                                ║\n"
+                "║                                                              ║\n"
+                f"{'║  ' + png_list.replace(chr(10), chr(10) + '║  '):<62}║\n"
+                "╚══════════════════════════════════════════════════════════════╝"
+            )
+            os.remove(_skipped_gate)  # clear after one injection
+    except Exception:
+        pass
+
+# ── Pending screenshots check ─────────────────────────────────────────────────
 pending_warning = None
 
 if os.path.exists(_pending):
@@ -155,11 +188,9 @@ if os.path.exists(_pending):
             png_list = '\n'.join(f'  {p}' for p in pngs[:6]) or '  (check /tmp/preview/)'
             pending_warning = (
                 "⚠️  UNREAD SCREENSHOTS FROM PREVIOUS TURN\n"
-                "These were auto-taken after your last file edit and never Read.\n"
                 "Read them NOW before responding — do not skip to the user's message:\n"
                 f"{png_list}\n"
-                "eyes-precheck.sh will BLOCK your next Write/Edit until you Read them.\n"
-                "This is the iter-16 failure mode. Do not repeat it."
+                "eyes-precheck.sh will BLOCK your next Write/Edit until you Read them."
             )
     except Exception:
         pass
@@ -172,12 +203,11 @@ if pending_warning is None and os.path.exists(_server_down):
             vercel_pngs = sorted(glob.glob('/tmp/preview/vercel-*.png'))
             vercel_note = ""
             if vercel_pngs:
-                vercel_note = "\n  Vercel screenshots exist as partial verification:\n" + \
+                vercel_note = "\n  Vercel screenshots available:\n" + \
                               '\n'.join(f'    {p}' for p in vercel_pngs[:3])
             pending_warning = (
                 "⚠️  SERVER WAS DOWN DURING LAST VISUAL EDIT\n"
                 "No local screenshot was captured — local build is UNVERIFIED.\n"
-                "Start the dev server and confirm the page renders before declaring done.\n"
                 f"  npm run dev -H 0.0.0.0{vercel_note}"
             )
     except Exception:
@@ -203,9 +233,16 @@ Prefix every claim about running or working code with how you know:
 "It works" without VERIFIED = dishonest. The honest form is "I believe it works."
 "Done" without running the gate = dishonest. The honest form is "I think it's done — running gate."
 
+BEFORE WRITING ANY OF THESE WORDS — done, complete, finished, fixed, shipped, ready, working, resolved:
+  REQUIRED: Run Bash → ls /tmp/visual-gate-pending /tmp/visual-server-needed 2>/dev/null
+  If either file exists → STOP → clear the gate → THEN declare done.
+  No exceptions. The check takes 1 second. Skipping it is the iter-16 failure mode.
+  message-display-gate.sh intercepts your output and brands it with GATE VIOLATION if you skip.
+  stop-gate.sh writes /tmp/skipped-gate at end of turn — the next user message gets a nuclear injection.
+
 Screenshots: auto-taken by visual-gate.sh. Eyes-precheck.sh BLOCKS your next write if you
-haven't Read them. The bypass you're most likely to attempt: writing the next response
-without opening the PNGs. That is the same failure mode as iter-16.
+haven't Read them. The bypass you're most likely to attempt: writing "done" in text
+without a Write/Edit after it. message-display-gate.sh now catches this.
 
 HONESTY IN RESEARCH [ALWAYS]:
 Do not present research findings as certainties unless you have a source.

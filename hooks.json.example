@@ -32,6 +32,26 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/stop-gate.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "MessageDisplay": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/message-display-gate.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PreToolUse": [
