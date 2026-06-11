@@ -1,24 +1,86 @@
 {
-  "description": "Visual enforcement hooks for Claude Code — give-me-what-i-asked-for",
+  "description": "Global auto-bootstrap hooks for Toby's Claude Code workspace",
   "hooks": {
     "UserPromptSubmit": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/prompt-gate.sh",
+            "command": "bash /Users/drive/.claude/hooks/prompt-gate.sh",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/bootstrap/session-start.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/bootstrap/memory-writeback.sh",
+            "timeout": 10
           }
         ]
       }
     ],
     "PreToolUse": [
       {
+        "matcher": "mcp__plugin_playwright_playwright__browser_take_screenshot",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.command/hooks/actually-getting-what-i-asked-for.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/deploy-gate.sh",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/code-gate.sh",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/visual-block.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Write",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/scope-check.sh",
+            "command": "bash /Users/drive/.claude/hooks/eyes-precheck.sh",
             "timeout": 5
           }
         ]
@@ -28,17 +90,67 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/scope-check.sh",
+            "command": "bash /Users/drive/.claude/hooks/eyes-precheck.sh",
             "timeout": 5
           }
         ]
       },
       {
-        "matcher": "mcp__plugin_playwright_playwright__browser_take_screenshot",
+        "matcher": "Write",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/actually-getting-what-i-asked-for.sh",
+            "command": "bash /Users/drive/.claude/hooks/scope-check.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/scope-check.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/command-boot.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_playwright_playwright__browser_navigate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/wizard-boot.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_chrome-devtools-mcp_chrome-devtools__navigate_page",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/wizard-boot.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/research-gate.sh",
             "timeout": 10
           }
         ]
@@ -46,12 +158,42 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/post-read-clear.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/hooks/visual-gate.sh",
-            "timeout": 60
+            "command": "bash /Users/drive/.claude/hooks/visual-gate.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/visual-clear.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/drive/.claude/hooks/commit-gate.sh",
+            "timeout": 15
           }
         ]
       }

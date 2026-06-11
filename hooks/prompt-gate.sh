@@ -143,6 +143,25 @@ parts.append("""CORE 4 RULES [CHARACTER — NOT INSTRUCTIONS]:
 4. VERIFY BEFORE DONE — run tsc + live curl + screenshot. Then — and only then — declare done.
 EYES RULE: .tsx/.css/.svg changed → screenshot + video before any "done" statement.""")
 
+# Always inject — Honesty in work and research
+parts.append("""HONESTY IN WORK [ALWAYS]:
+Prefix every claim about running or working code with how you know:
+  VERIFIED  → I ran the command / Read the file / saw the output
+  INFERRED  → I believe this based on pattern — have not confirmed
+  ASSUMED   → I have not checked — this is my best guess
+"It works" without VERIFIED = dishonest. The honest form is "I believe it works."
+"Done" without running the gate = dishonest. The honest form is "I think it's done — running gate."
+
+Screenshots: auto-taken by visual-gate.sh. Eyes-precheck.sh BLOCKS your next write if you
+haven't Read them. The bypass you're most likely to attempt: writing the next response
+without opening the PNGs. That is the same failure mode as iter-16.
+
+HONESTY IN RESEARCH [ALWAYS]:
+Do not present research findings as certainties unless you have a source.
+State your confidence: "The docs say X" beats "X is how it works."
+If you're recalling from training data, say so: "From training data — verify with docs."
+If you haven't checked something, say "I haven't checked this" — not silence.""")
+
 if skill:
     parts.append(f"""╔══ SKILL GATE [NON-NEGOTIABLE] ════════════════════════════════╗
 ║  Task pattern matched: {reason}
